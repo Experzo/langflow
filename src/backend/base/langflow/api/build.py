@@ -177,6 +177,13 @@ async def create_flow_response(
                 event_id, value, put_time = await queue.get()
                 if value is None:
                     break
+                try:
+                    if value:
+                        decoded_value = value.decode("utf-8")
+                        if any(event_type in decoded_value for event_type in ["RUN_STARTED", "RUN_FINISHED", "STEP_STARTED", "STEP_ENDED"]):
+                            logger.debug(f"\n>>> Streaming Event: {decoded_value}\n")
+                except Exception:
+                    pass
                 get_time = time.time()
                 yield value.decode("utf-8")
                 await logger.adebug(f"Event {event_id} consumed in {get_time - put_time:.4f}s")
@@ -247,6 +254,9 @@ async def generate_flow_events(
 
             await chat_service.set_cache(flow_id_str, graph)
             await log_telemetry(start_time, components_count, run_id=run_id, success=True)
+            
+            # Send RUN_STARTED event
+            graph._send_lifecycle_event("RUN_STARTED", event_manager)
 
         except Exception as exc:
             await log_telemetry(start_time, components_count, run_id=run_id, success=False, error_message=str(exc))
@@ -317,6 +327,7 @@ async def generate_flow_events(
         start_time = time.perf_counter()
         error_message = None
 
+        graph._send_lifecycle_event("STEP_STARTED", event_manager, vertex_id=vertex_id)
         try:
             vertex = graph.get_vertex(vertex_id)
             try:
@@ -338,7 +349,10 @@ async def generate_flow_events(
                 top_level_vertices = graph.get_top_level_vertices(next_runnable_vertices)
 
                 result_data_response = ResultDataResponse.model_validate(result_dict, from_attributes=True)
+                
+                graph._send_lifecycle_event("STEP_ENDED", event_manager, vertex_id=vertex_id)
             except Exception as exc:  # noqa: BLE001
+                graph._send_lifecycle_event("STEP_ENDED", event_manager, vertex_id=vertex_id, error=exc)
                 if isinstance(exc, ComponentBuildError):
                     params = exc.message
                     tb = exc.formatted_traceback
@@ -511,6 +525,7 @@ async def generate_flow_events(
         await asyncio.gather(*tasks)
     except asyncio.CancelledError:
         background_tasks.add_task(graph.end_all_traces_in_context())
+        graph._send_lifecycle_event("RUN_FINISHED", event_manager, status="FAILED")
         raise
     except Exception as e:
         await logger.aerror(f"Error building vertices: {e}")
@@ -523,10 +538,12 @@ async def generate_flow_events(
             trace_name=trace_name,
         )
         event_manager.on_error(data=error_message.data)
+        graph._send_lifecycle_event("RUN_FINISHED", event_manager, status="FAILED", error=e)
         raise
 
     event_manager.on_end(data={})
     await graph.end_all_traces()
+    graph._send_lifecycle_event("RUN_FINISHED", event_manager, status="COMPLETED")
     await event_manager.queue.put((None, None, time.time()))
 
 

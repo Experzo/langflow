@@ -110,7 +110,6 @@ async def run_graph(
         components.append(input_value_request.components or [])
         inputs_list.append({INPUT_FIELD_NAME: input_value_request.input_value})
         types.append(input_value_request.type)
-    print("inputs_list:", inputs_list)
     return await graph.arun(
         inputs_list,
         inputs_components=components,
