@@ -357,6 +357,7 @@ class Graph:
         vertex_id: str | None = None,
         error: Exception | None = None,
         status: str | None = None,
+        chunk: str | None = None,
     ) -> None:
         """Sends a lifecycle event using the event manager."""
         if not event_manager:
@@ -379,6 +380,11 @@ class Graph:
             langflow_metrics["flow_id"] = self.flow_id
             if status:
                 langflow_metrics["status"] = status
+        
+        if event_type == "TEXT_CONTENT_DELTA":
+            langflow_metrics["flow_id"] = self.flow_id
+            data["chunk"] = chunk
+            langflow_metrics["token_size"] = len(chunk)
         
         if event_type in ("STEP_STARTED", "STEP_ENDED"):
             data["vertex_id"] = vertex_id
@@ -478,14 +484,14 @@ class Graph:
         Returns:
             Generator yielding results from graph execution
         """
-        source_ids = set({e.source_id for e in self.edges if e})
-        last_vertices = set()
-        print(self.vertices)
-        print(self.edges)
-        for v in self.vertices:
-            if v and v.id not in source_ids:
-                last_vertices.add(v.id) 
-        print([n.id for n in last_vertices])
+        # source_ids = set({e.source_id for e in self.edges if e})
+        # last_vertices = set()
+        # print(self.vertices)
+        # print(self.edges)
+        # for v in self.vertices:
+        #     if v and v.id not in source_ids:
+        #         last_vertices.add(v.id) 
+        # print([n.id for n in last_vertices])
         if self.is_cyclic and max_iterations is None:
             msg = "You must specify a max_iterations if the graph is cyclic"
             raise ValueError(msg)
@@ -819,15 +825,15 @@ class Graph:
         Returns:
             List[Optional["ResultData"]]: The outputs of the graph.
         """
-        print("Calling _run with inputs:", inputs)
-        source_ids = set({e.source_id for e in self.edges if e})
-        last_vertices = set()
-        print(self.vertices)
-        print(self.edges)
-        for v in self.vertices:
-            if v and v.id not in source_ids:
-                last_vertices.add(v.id) 
-        print([n.id for n in last_vertices])
+        # print("Calling _run with inputs:", inputs)
+        # source_ids = set({e.source_id for e in self.edges if e})
+        # last_vertices = set()
+        # print(self.vertices)
+        # print(self.edges)
+        # for v in self.vertices:
+        #     if v and v.id not in source_ids:
+        #         last_vertices.add(v.id) 
+        # print([n.id for n in last_vertices])
         
         if input_components and not isinstance(input_components, list):
             msg = f"Invalid components value: {input_components}. Expected list"
@@ -917,16 +923,6 @@ class Graph:
         # we need to go through self.inputs and update the self.raw_params
         # of the vertices that are inputs
         # if the value is a list, we need to run multiple times
-        print("Calling arun with inputs:", inputs)
-        source_ids = set({e.source_id for e in self.edges if e})
-        last_vertices = set()
-        print(self.vertices)
-        print(self.edges)
-        for v in self.vertices:
-            if v and v.id not in source_ids:
-                last_vertices.add(v.id) 
-        print([n.id for n in last_vertices])
-
         vertex_outputs = []
         if not isinstance(inputs, list):
             inputs = [inputs]

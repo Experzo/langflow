@@ -1609,6 +1609,7 @@ class Component(CustomComponent):
 
             self._stored_message_id = stored_message.id
             try:
+                print(self._should_stream_message(stored_message, message), message is not None, isinstance(message.text, AsyncIterator | Iterator))
                 complete_message = ""
                 if (
                     self._should_stream_message(stored_message, message)
@@ -1703,6 +1704,7 @@ class Component(CustomComponent):
 
         if isinstance(iterator, AsyncIterator):
             return await self._handle_async_iterator(iterator, message.id, message)
+        self.graph._send_lifecycle_event("TEXT_CONTENT_START", self._event_manager)
         try:
             complete_message = ""
             first_chunk = True
@@ -1724,6 +1726,7 @@ class Component(CustomComponent):
                 chunk.content, complete_message, message_id, message, first_chunk=first_chunk
             )
             first_chunk = False
+        self.graph._send_lifecycle_event("TEXT_CONTENT_END", self._event_manager)
         return complete_message
 
     async def _process_chunk(
@@ -1736,13 +1739,16 @@ class Component(CustomComponent):
                 msg_copy = message.model_copy()
                 msg_copy.text = complete_message
                 await self._send_message_event(msg_copy, id_=message_id)
-            await asyncio.to_thread(
-                self._event_manager.on_token,
-                data={
-                    "chunk": chunk,
-                    "id": str(message_id),
-                },
-            )
+
+            self.graph._send_lifecycle_event("TEXT_CONTENT_DELTA", self._event_manager, chunk=chunk)
+
+            # await asyncio.to_thread(
+            #     self._event_manager.on_token,
+            #     data={
+            #         "chunk": chunk,
+            #         "id": str(message_id),
+            #     },
+            # )
         return complete_message
 
     async def send_error(
