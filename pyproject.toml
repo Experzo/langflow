@@ -136,7 +136,7 @@ dependencies = [
     "traceloop-sdk>=0.43.1,<1.0.0",
     "vlmrun[all]>=0.2.0",
     "cuga==0.1.10",
-    "agent-lifecycle-toolkit~=0.4.1",
+    "agent-lifecycle-toolkit~=0.4.1; sys_platform != 'win32'",
     "astrapy>=2.1.0,<3.0.0",
     "aioboto3>=15.2.0,<16.0.0"
 ]
@@ -257,6 +257,13 @@ postgresql = [
 override-dependencies = [
     # temporary force a newer python-pptx
     "python-pptx>=1.0.2",
+]
+
+# Include Windows in resolution to ensure all dependencies have compatible wheels
+required-environments = [
+    "sys_platform == 'linux'",
+    "sys_platform == 'darwin'",
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
 ]
 
 [project.scripts]
