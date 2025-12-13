@@ -150,7 +150,7 @@ export function buildTweakObject(tweak: tweakType) {
       }
     });
   });
-  const tweakString = JSON.stringify(tweak.at(-1), null, 2);
+  const tweakString = JSON.stringify(tweak[tweak.length - 1], null, 2);
   return tweakString;
 }
 
