@@ -81,15 +81,6 @@ class Edge:
             self._validate_handles(source, target)
 
     def _validate_handles(self, source, target) -> None:
-        # #region agent log
-        import json
-        import os
-        try:
-            with open(r"c:\Workspace\Process Designer Dev. Environment\process-designer-dashboard NEW\.cursor\debug.log", "a", encoding="utf-8") as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"edge-validation","hypothesisId":"E1","location":"edge/base.py:83","message":"_validate_handles entry","data":{"source_id":source.id if source else None,"target_id":target.id if target else None,"source_display_name":source.display_name if source else None,"target_display_name":target.display_name if target else None,"target_handle_input_types":self.target_handle.input_types if hasattr(self.target_handle, 'input_types') else None,"target_handle_type":self.target_handle.type if hasattr(self.target_handle, 'type') else None,"source_handle_output_types":self.source_handle.output_types if hasattr(self.source_handle, 'output_types') else None,"source_handle_name":self.source_handle.name if hasattr(self.source_handle, 'name') else None,"target_handle_field_name":self.target_handle.field_name if hasattr(self.target_handle, 'field_name') else None},"timestamp":int(__import__("time").time()*1000)})+"\n")
-        except: pass
-        # #endregion
-        
         if self.target_handle.input_types is None:
             self.valid_handles = self.target_handle.type in self.source_handle.output_types
         elif self.target_handle.type is None:
@@ -110,22 +101,9 @@ class Edge:
                 or self.target_handle.type in self.source_handle.output_types
             )
 
-        # #region agent log
-        try:
-            with open(r"c:\Workspace\Process Designer Dev. Environment\process-designer-dashboard NEW\.cursor\debug.log", "a", encoding="utf-8") as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"edge-validation","hypothesisId":"E1","location":"edge/base.py:103","message":"_validate_handles result","data":{"valid_handles":self.valid_handles,"source_output_types":self.source_handle.output_types if hasattr(self.source_handle, 'output_types') else None,"target_input_types":self.target_handle.input_types if hasattr(self.target_handle, 'input_types') else None,"target_type":self.target_handle.type if hasattr(self.target_handle, 'type') else None},"timestamp":int(__import__("time").time()*1000)})+"\n")
-        except: pass
-        # #endregion
-
         if not self.valid_handles:
             logger.debug(self.source_handle)
             logger.debug(self.target_handle)
-            # #region agent log
-            try:
-                with open(r"c:\Workspace\Process Designer Dev. Environment\process-designer-dashboard NEW\.cursor\debug.log", "a", encoding="utf-8") as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"edge-validation","hypothesisId":"E1","location":"edge/base.py:107","message":"Invalid handles detected","data":{"source_display_name":source.display_name if source else None,"target_display_name":target.display_name if target else None,"source_output_types":self.source_handle.output_types if hasattr(self.source_handle, 'output_types') else None,"target_input_types":self.target_handle.input_types if hasattr(self.target_handle, 'input_types') else None,"target_type":self.target_handle.type if hasattr(self.target_handle, 'type') else None,"source_handle_name":self.source_handle.name if hasattr(self.source_handle, 'name') else None,"target_handle_field_name":self.target_handle.field_name if hasattr(self.target_handle, 'field_name') else None},"timestamp":int(__import__("time").time()*1000)})+"\n")
-            except: pass
-            # #endregion
             msg = f"Edge between {source.display_name} and {target.display_name} has invalid handles"
             raise ValueError(msg)
 
