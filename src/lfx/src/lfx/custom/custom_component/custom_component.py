@@ -461,6 +461,15 @@ class CustomComponent(BaseComponent):
         Returns:
             The variable for the current user with the specified name.
         """
+        # Safety check: if name looks like an API key, this means the API key value
+        # was passed as a variable name. This shouldn't happen if update_params_with_load_from_db_fields
+        # is working correctly, but as a safeguard, we detect it here.
+        # However, we should NOT raise an error - instead, we should return the value directly
+        # because the user intended to use the API key, not look it up as a variable.
+        if name and isinstance(name, str) and len(name) > 20 and name.startswith("sk-"):
+            # The value is already an API key, return it directly instead of looking it up
+            return name
+        
         if hasattr(self, "_user_id") and not self.user_id:
             msg = f"User id is not set for {self.__class__.__name__}"
             raise ValueError(msg)

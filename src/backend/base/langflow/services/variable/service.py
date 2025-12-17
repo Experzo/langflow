@@ -90,7 +90,12 @@ class DatabaseVariableService(VariableService, Service):
         variable = (await session.exec(stmt)).first()
 
         if not variable or not variable.value:
-            msg = f"{name} variable not found."
+            # Don't expose API keys or sensitive values in error messages
+            # Check if name looks like an API key (starts with "sk-" and is long)
+            if name and isinstance(name, str) and len(name) > 20 and name.startswith("sk-"):
+                msg = "API key variable not found. Please use a variable name instead of the key itself."
+            else:
+                msg = f"{name} variable not found."
             raise ValueError(msg)
 
         if variable.type == CREDENTIAL_TYPE and field == "session_id":

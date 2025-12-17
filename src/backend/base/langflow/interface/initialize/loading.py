@@ -120,13 +120,36 @@ async def update_params_with_load_from_db_fields(
             if field not in params or not params[field]:
                 continue
 
+            param_value = params[field]
+            
+            # Check if the param value looks like an API key rather than a variable name
+            # Common patterns: "sk-", "sk-proj-", "sk_live_", etc.
+            # If it does, skip variable lookup and use the value directly
+            looks_like_api_key = (
+                param_value 
+                and isinstance(param_value, str) 
+                and len(param_value) > 20  # API keys are typically long
+                and (
+                    param_value.startswith("sk-")  # Matches "sk-" and "sk-proj-"
+                    or param_value.startswith("sk_live_")
+                    or param_value.startswith("sk_test_")
+                    or param_value.startswith("sk_proj-")
+                )
+            )
+            if looks_like_api_key:
+                # Value is already an API key, don't try to look it up as a variable
+                continue
+
             try:
                 key = await custom_component.get_variable(name=params[field], field=field, session=session)
             except ValueError as e:
-                if "User id is not set" in str(e):
+                error_msg = str(e)
+                if "User id is not set" in error_msg:
                     raise
-                if "variable not found." in str(e) and not fallback_to_env_vars:
-                    raise
+                if "variable not found." in error_msg and not fallback_to_env_vars:
+                    # Don't expose the actual API key in error messages
+                    safe_error = error_msg.replace(params[field], f"<variable_name>") if params[field] in error_msg else error_msg
+                    raise ValueError(safe_error)
                 await logger.adebug(str(e))
                 key = None
 
@@ -149,7 +172,39 @@ async def build_component(
     custom_component: Component,
 ):
     # Now set the params as attributes of the custom_component
-    custom_component.set_attributes(params)
+    # Check if set_attributes exists (should be inherited from Component)
+    if not hasattr(custom_component, "set_attributes"):
+        # This should not happen if Component is properly inherited
+        # Log detailed information for debugging
+        component_class = custom_component.__class__
+        mro = component_class.__mro__
+        logger.aerror(
+            f"Component {component_class.__name__} doesn't have set_attributes method. "
+            f"MRO: {[cls.__name__ for cls in mro]}. "
+            f"Has Component in MRO: {any(cls.__name__ == 'Component' for cls in mro)}"
+        )
+        # Try to import Component and check if we can add the method
+        from lfx.custom.custom_component.component import Component as ComponentClass
+        if Component in mro:
+            # Component is in MRO, so the method should exist - this is a serious issue
+            raise AttributeError(
+                f"Component {component_class.__name__} inherits from Component but doesn't have set_attributes. "
+                "This indicates a version mismatch or corrupted component code."
+            )
+        else:
+            # Component is not in MRO - the component code doesn't properly inherit
+            raise AttributeError(
+                f"Component {component_class.__name__} does not inherit from Component. "
+                "Please ensure the component code properly inherits from Component."
+            )
+    
+    try:
+        custom_component.set_attributes(params)
+    except AttributeError as e:
+        # If set_attributes exists but fails, log and re-raise
+        logger.aerror(f"Error calling set_attributes on {custom_component.__class__.__name__}: {e}")
+        raise
+    
     build_results, artifacts = await custom_component.build_results()
 
     return custom_component, build_results, artifacts

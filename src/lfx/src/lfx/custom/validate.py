@@ -264,6 +264,19 @@ def create_class(code, class_name):
     try:
         module = ast.parse(code)
         exec_globals = prepare_global_scope(module)
+        
+        # Ensure Component class in exec_globals is the current one from codebase
+        # This fixes issues where template code has old Component definitions
+        try:
+            from lfx.custom.custom_component.component import Component as CurrentComponent
+            # Override any Component class that might be in the template code
+            exec_globals["Component"] = CurrentComponent
+            # Also ensure CustomComponent is current
+            from lfx.custom.custom_component.custom_component import CustomComponent as CurrentCustomComponent
+            exec_globals["CustomComponent"] = CurrentCustomComponent
+        except ImportError:
+            # If imports fail, continue with whatever is in exec_globals
+            pass
 
         class_code = extract_class_code(module, class_name)
         compiled_class = compile_class_code(class_code)

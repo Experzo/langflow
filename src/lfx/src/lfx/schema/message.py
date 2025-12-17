@@ -215,7 +215,19 @@ class Message(Data):
             if isinstance(file, Image):
                 content_dicts.append(file.to_content_dict())
             else:
-                content_dicts.append(create_image_content_dict(file, None, model_name))
+                # Validate that the file is actually an image before processing
+                # This prevents errors when non-image files (like PDFs) are sent to APIs that only accept images
+                if not is_image_file(file):
+                    logger.warning(
+                        f"Skipping non-image file: {file}. Only image files are supported for vision models."
+                    )
+                    continue
+                try:
+                    content_dicts.append(create_image_content_dict(file, None, model_name))
+                except Exception as e:  # noqa: BLE001
+                    logger.error(f"Error creating image content dict for file {file}: {e}")
+                    # Continue processing other files instead of failing completely
+                    continue
         return content_dicts
 
     def load_lc_prompt(self):

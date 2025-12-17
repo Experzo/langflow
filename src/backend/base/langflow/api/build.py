@@ -43,7 +43,20 @@ def _log_component_input_telemetry(
 ) -> None:
     """Log component input telemetry if available."""
     if hasattr(vertex, "custom_component") and vertex.custom_component:
-        inputs_dict = vertex.custom_component.get_telemetry_input_values()
+        # Check if get_telemetry_input_values exists before calling
+        if hasattr(vertex.custom_component, "get_telemetry_input_values"):
+            try:
+                inputs_dict = vertex.custom_component.get_telemetry_input_values()
+            except AttributeError as e:
+                logger.awarning(f"Component {vertex.custom_component.__class__.__name__} hasattr passed but method call failed: {e}")
+                return
+        else:
+            # Component doesn't have the method - skip telemetry logging
+            logger.awarning(
+                f"Component {vertex.custom_component.__class__.__name__} doesn't have get_telemetry_input_values. "
+                "Skipping telemetry logging."
+            )
+            return
         if inputs_dict:
             background_tasks.add_task(
                 telemetry_service.log_package_component_inputs,
@@ -346,6 +359,11 @@ async def generate_flow_events(
                     tb = traceback.format_exc()
                     await logger.aexception("Error building Component")
                     params = format_exception_message(exc)
+                    # Sanitize API keys from error messages
+                    import re
+                    # Pattern to match API keys (sk- followed by alphanumeric and special chars)
+                    api_key_pattern = r'sk-[a-zA-Z0-9\-_]{20,}'
+                    params = re.sub(api_key_pattern, 'sk-***REDACTED***', params)
                 message = {"errorMessage": params, "stackTrace": tb}
                 valid = False
                 error_message = params
