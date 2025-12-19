@@ -184,7 +184,14 @@ class CustomComponent(BaseComponent):
     def get_full_path(self, path: str) -> str:
         storage_svc: StorageService = get_storage_service()
 
-        flow_id, file_name = path.split("/", 1)
+        # Replace backslashes with forward slashes for cross-platform compatibility
+        normalized_path = path.replace("\\", "/")
+        
+        parts = normalized_path.split("/", 1)
+        if len(parts) != 2:
+            return path
+            
+        flow_id, file_name = parts
         return storage_svc.build_full_path(flow_id, file_name)
 
     @property

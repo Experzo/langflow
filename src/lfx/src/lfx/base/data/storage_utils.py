@@ -36,10 +36,16 @@ def parse_storage_path(path: str) -> tuple[str, str] | None:
     Returns:
         tuple[str, str] | None: (flow_id, filename) or None if invalid format
     """
-    if not path or "/" not in path:
+    if not path:
         return None
 
-    parts = path.split("/", 1)
+    # Replace backslashes with forward slashes for cross-platform compatibility
+    normalized_path = path.replace("\\", "/")
+    
+    if "/" not in normalized_path:
+        return None
+
+    parts = normalized_path.split("/", 1)
     if len(parts) != EXPECTED_PATH_PARTS or not parts[0] or not parts[1]:
         return None
 

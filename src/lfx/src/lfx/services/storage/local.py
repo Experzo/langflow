@@ -44,8 +44,11 @@ class LocalStorageService(StorageService):
         Returns:
             str: Absolute filesystem path
         """
+        # Replace backslashes with forward slashes for cross-platform compatibility
+        normalized_path = logical_path.replace("\\", "/")
+        
         # Split the logical path into flow_id and filename
-        parts = logical_path.split("/", 1)
+        parts = normalized_path.split("/", 1)
         if len(parts) != EXPECTED_PATH_PARTS:
             # Handle edge case - return as-is if format is unexpected
             return logical_path

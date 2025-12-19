@@ -618,7 +618,11 @@ class BaseFileComponent(Component, ABC):
                     BaseFileComponent.BaseFile(data, Path(path_str), delete_after_processing=delete_after_processing)
                 )
             else:
-                resolved_path = Path(self.resolve_path(path_str))
+                from lfx.services.deps import get_storage_service
+                storage_svc = get_storage_service()
+                resolved_path_str = storage_svc.resolve_component_path(path_str)
+                resolved_path = Path(self.resolve_path(resolved_path_str))
+
                 if not resolved_path.exists():
                     msg = f"File or directory not found: {path}"
                     self.log(msg)
