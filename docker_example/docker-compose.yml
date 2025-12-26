@@ -2,6 +2,10 @@ services:
   langflow:
     image: langflowai/langflow:latest # or another version tag on https://hub.docker.com/r/langflowai/langflow
     pull_policy: always               # set to 'always' when using 'latest' image
+    # The Langflow image may run as a non-root user. Docker named volumes are created as root-owned,
+    # which can prevent Langflow from writing its secret key to LANGFLOW_CONFIG_DIR.
+    # Running the container as root fixes this for local dev environments.
+    user: "0:0"
     ports:
       - "7860:7860"
     depends_on:
